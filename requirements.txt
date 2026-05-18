@@ -1,0 +1,25 @@
+streamlit==1.32.2
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.4.1+cpu
+torchvision==0.19.1+cpu
+langchain==0.1.20
+langchain-community==0.0.38
+chromadb==0.4.24
+sentence-transformers==2.7.0
+pymupdf==1.24.1
+pytesseract==0.3.10
+Pillow==10.3.0
+reportlab==4.1.0
+beautifulsoup4==4.12.3
+requests==2.31.0
+posthog==3.1.0
+urllib3<3,>=1.21.1
+charset-normalizer<4,>=2.0.0
+chardet<6.0.0
+python-dotenv==1.0.1
+anthropic>=0.40.0
+groq>=0.11.0
+ragas==0.1.9
+datasets==2.19.1
+pandas==2.2.2
+numpy==1.26.4
