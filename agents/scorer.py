@@ -51,42 +51,57 @@ def score_candidate(cv_data: Dict[str, Any], jd_data: Dict[str, Any]) -> Dict[st
 
 
 def score_technical_skills(cv_data: Dict[str, Any], jd_data: Dict[str, Any]) -> Tuple[float, str]:
-    """Score technical skills match."""
-    cv_skills = set(cv_data.get("skills") or [])
-    required_skills = set(jd_data.get("required_skills") or [])
-    preferred_skills = set(jd_data.get("preferred_skills") or [])
+    """Score technical skills match using LLM semantic evaluation."""
+    cv_skills = list(cv_data.get("skills") or [])
+    required_skills = list(jd_data.get("required_skills") or [])
+    preferred_skills = list(jd_data.get("preferred_skills") or [])
 
     if not required_skills:
         return 100.0, "No required skills specified"
 
-    required_match = len(cv_skills & required_skills) / len(required_skills) * 100
-    preferred_match = len(cv_skills & preferred_skills) / len(preferred_skills) * 100 if preferred_skills else 0
-    score = (required_match * 0.7) + (preferred_match * 0.3)
-
     prompt = (
-        f"Evaluate the technical skills match. CV Skills: {list(cv_skills)}. "
-        f"Required: {list(required_skills)}. Preferred: {list(preferred_skills)}. Score: {score:.1f}/100. "
-        "Respond in 1-2 sentences explaining the match."
+        f"You are evaluating a candidate's technical skills against a job description.\n\n"
+        f"Candidate skills: {cv_skills}\n"
+        f"Required skills: {required_skills}\n"
+        f"Preferred/nice-to-have skills: {preferred_skills}\n\n"
+        f"Instructions:\n"
+        f"- Match semantically, not just by exact string. 'OpenAI' matches 'OpenAI API', 'langchain' matches 'LangChain', etc.\n"
+        f"- Required skills are worth 70% of the score, preferred skills 30%.\n"
+        f"- Give a score from 0-100 based on how well the candidate's skills cover the requirements.\n\n"
+        'Reply with ONLY a JSON object: {"score": <number 0-100>, "reasoning": "<1-2 sentences>"}'
     )
-    return round(score, 1), get_llm_response(prompt)
+    response = get_llm_response(prompt)
+    try:
+        parsed = parse_llm_json_response(response)
+        return round(float(parsed.get("score", 50.0)), 1), parsed.get("reasoning", response)
+    except Exception as exc:
+        logger.warning("Failed to parse technical skills JSON, defaulting to 50: %s", exc)
+        return 50.0, response
 
 
 def score_experience_level(cv_data: Dict[str, Any], jd_data: Dict[str, Any]) -> Tuple[float, str]:
-    """Score experience level match."""
+    """Score experience level match using LLM holistic evaluation."""
     cv_years = float(cv_data.get("total_years_experience") or 0)
     min_years = float(jd_data.get("minimum_years_experience") or 0)
-
-    if cv_years >= min_years:
-        score = 100.0
-    else:
-        score = max(0, (cv_years / min_years) * 100) if min_years > 0 else 50.0
+    seniority = jd_data.get("seniority_level", "unknown")
+    work_experience = cv_data.get("work_experience") or []
 
     prompt = (
-        f"Candidate has {cv_years} years experience; role requires {min_years}+ years "
-        f"({jd_data.get('seniority_level', 'unknown')} level). Score: {score:.1f}/100. "
-        "Respond in 1-2 sentences."
+        f"Evaluate the candidate's experience level for a {seniority}-level role requiring {min_years}+ years.\n\n"
+        f"Candidate has {cv_years} years of work experience.\n"
+        f"Work history: {[exp.get('role', '') + ' at ' + exp.get('company', '') + ' (' + str(exp.get('duration', '')) + ')' for exp in work_experience]}\n\n"
+        f"Important: Internships, project portfolios, and hands-on AI/software work count as relevant experience. "
+        f"A candidate with strong project work and internships may be well-suited for a mid-level role even with under 2 years of formal employment. "
+        f"Be generous when the candidate shows strong practical skills through projects.\n\n"
+        'Reply with ONLY a JSON object: {"score": <number 0-100>, "reasoning": "<1-2 sentences>"}'
     )
-    return round(score, 1), get_llm_response(prompt)
+    response = get_llm_response(prompt)
+    try:
+        parsed = parse_llm_json_response(response)
+        return round(float(parsed.get("score", 50.0)), 1), parsed.get("reasoning", response)
+    except Exception as exc:
+        logger.warning("Failed to parse experience level JSON, defaulting to 50: %s", exc)
+        return 50.0, response
 
 
 def score_domain_relevance(cv_data: Dict[str, Any], jd_data: Dict[str, Any]) -> Tuple[float, str]:
