@@ -1,6 +1,6 @@
 """Match Scoring Agent."""
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 from typing import Dict, Any, Tuple
 from config import SCORE_WEIGHTS
 from utils.llm_client import get_llm_response, parse_llm_json_response
@@ -13,23 +13,25 @@ _RECOMMENDATION_THRESHOLDS = [(75, "STRONG FIT"), (50, "POTENTIAL FIT"), (25, "W
 def score_candidate(cv_data: Dict[str, Any], jd_data: Dict[str, Any]) -> Dict[str, Any]:
     """Score candidate match against job description."""
     try:
-        scorers = {
-            "technical_skills": lambda: score_technical_skills(cv_data, jd_data),
-            "experience_level": lambda: score_experience_level(cv_data, jd_data),
-            "domain_relevance": lambda: score_domain_relevance(cv_data, jd_data),
-            "employment_stability": lambda: score_employment_stability(cv_data),
-            "education": lambda: score_education(cv_data, jd_data),
-        }
+        scorers = [
+            ("technical_skills", lambda: score_technical_skills(cv_data, jd_data)),
+            ("experience_level", lambda: score_experience_level(cv_data, jd_data)),
+            ("domain_relevance", lambda: score_domain_relevance(cv_data, jd_data)),
+            ("employment_stability", lambda: score_employment_stability(cv_data)),
+            ("education", lambda: score_education(cv_data, jd_data)),
+        ]
 
         scores: Dict[str, float] = {}
         reasoning: Dict[str, str] = {}
 
-        # Run all 5 LLM calls in parallel — they are fully independent
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            futures = {executor.submit(fn): name for name, fn in scorers.items()}
-            for future in as_completed(futures):
-                name = futures[future]
-                scores[name], reasoning[name] = future.result()
+        # Run sequentially with a small delay to avoid Groq TPM rate limits
+        for name, fn in scorers:
+            try:
+                scores[name], reasoning[name] = fn()
+            except Exception as exc:
+                logger.warning("Scorer %s failed: %s — defaulting to 50", name, exc)
+                scores[name], reasoning[name] = 50.0, f"Scoring unavailable: {exc}"
+            time.sleep(1)
 
         total_score = sum(scores[dim] * SCORE_WEIGHTS[dim] for dim in scores)
         recommendation = next(
