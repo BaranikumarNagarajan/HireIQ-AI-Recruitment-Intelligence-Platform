@@ -6,10 +6,11 @@ on:
   workflow_dispatch:
 
 env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  REGION: us-central1
+  PROJECT_ID: hireiq-app-2026
+  REGION: europe-west1
   SERVICE: hireiq
-  REGISTRY: us-central1-docker.pkg.dev
+  REGISTRY: europe-west1-docker.pkg.dev
+  REPO: hireiq-repo
 
 jobs:
   deploy:
@@ -35,7 +36,7 @@ jobs:
 
       - name: Build & Push Docker image
         run: |
-          IMAGE=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/hireiq/${{ env.SERVICE }}:${{ github.sha }}
+          IMAGE=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/${{ env.SERVICE }}:${{ github.sha }}
           docker build -t $IMAGE .
           docker push $IMAGE
           echo "IMAGE=$IMAGE" >> $GITHUB_ENV
@@ -47,14 +48,10 @@ jobs:
             --platform managed \
             --region ${{ env.REGION }} \
             --allow-unauthenticated \
-            --port 8080 \
             --memory 2Gi \
-            --cpu 2 \
             --timeout 300 \
-            --set-env-vars "LLM_PROVIDER=groq" \
-            --set-env-vars "GROQ_MODEL=${{ secrets.GROQ_MODEL }}" \
-            --set-env-vars "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" \
-            --set-env-vars "GOOGLE_CLOUD_PROJECT=${{ secrets.GCP_PROJECT_ID }}"
+            --set-secrets=GROQ_API_KEY=GROQ_API_KEY:latest \
+            --project ${{ env.PROJECT_ID }}
 
       - name: Print Service URL
         run: |
