@@ -109,10 +109,13 @@ def _llm_score_three_dims(cv_data: Dict[str, Any], jd_data: Dict[str, Any]) -> D
         result = {}
         for dim in ("technical_skills", "experience_level", "domain_relevance"):
             dim_data = parsed.get(dim, {})
-            result[dim] = {
-                "score": round(float(dim_data.get("score", 50.0)), 1),
-                "reasoning": str(dim_data.get("reasoning", "No reasoning provided")),
-            }
+            score = round(float(dim_data.get("score", 50.0)), 1)
+            reasoning = str(dim_data.get("reasoning", "No reasoning provided"))
+            # Never give 0 for experience when candidate has real work history
+            if dim == "experience_level" and score < 40 and work_experience:
+                score = 40.0
+                reasoning += " (Internship and project experience credited — minimum score applied.)"
+            result[dim] = {"score": score, "reasoning": reasoning}
         return result
     except Exception as exc:
         logger.warning("LLM scoring failed: %s — using defaults", exc)

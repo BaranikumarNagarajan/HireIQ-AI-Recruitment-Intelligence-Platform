@@ -217,22 +217,32 @@ if tab == "CV Screening":
                 st.write(f"**{dim.replace('_', ' ').title()}:** {reason}")
         
         with st.expander("🛠️ Skills Analysis"):
-            cv_skills = set(results["cv_data"].get("skills", []))
-            jd_required = set(results["jd_data"].get("required_skills", []))
-            jd_preferred = set(results["jd_data"].get("preferred_skills", []))
-            
+            cv_skills = list(results["cv_data"].get("skills", []))
+            jd_required = list(results["jd_data"].get("required_skills", []))
+            jd_preferred = list(results["jd_data"].get("preferred_skills", []))
+            cv_lower = [s.lower() for s in cv_skills]
+
+            def _skill_matched(jd_skill: str) -> bool:
+                jd_words = [w for w in jd_skill.lower().split() if len(w) > 3]
+                for cv_s in cv_lower:
+                    if jd_skill.lower() in cv_s or cv_s in jd_skill.lower():
+                        return True
+                    if any(w in cv_s for w in jd_words):
+                        return True
+                return False
+
             col1, col2 = st.columns(2)
             with col1:
                 st.subheader("✅ Matched Skills")
-                matched = cv_skills & (jd_required | jd_preferred)
-                for skill in matched:
-                    st.success(skill)
-            
+                for skill in jd_required + jd_preferred:
+                    if _skill_matched(skill):
+                        st.success(skill)
+
             with col2:
                 st.subheader("❌ Missing Skills")
-                missing = (jd_required | jd_preferred) - cv_skills
-                for skill in missing:
-                    st.error(skill)
+                for skill in jd_required + jd_preferred:
+                    if not _skill_matched(skill):
+                        st.error(skill)
         
         with st.expander("⚖️ Compliance & Legal"):
             compliance_data = results["compliance_data"]
