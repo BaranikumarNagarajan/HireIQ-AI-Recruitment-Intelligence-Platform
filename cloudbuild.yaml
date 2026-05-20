@@ -4,17 +4,17 @@ steps:
     args:
       - 'build'
       - '-t'
-      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/hireiq-repo/hireiq:$SHORT_SHA'
+      - 'europe-west1-docker.pkg.dev/hireiq-app-2026/hireiq-repo/hireiq:$SHORT_SHA'
       - '-t'
-      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/hireiq-repo/hireiq:latest'
+      - 'europe-west1-docker.pkg.dev/hireiq-app-2026/hireiq-repo/hireiq:latest'
       - '.'
 
   # Push both tags to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'europe-west1-docker.pkg.dev/$PROJECT_ID/hireiq-repo/hireiq:$SHORT_SHA']
+    args: ['push', 'europe-west1-docker.pkg.dev/hireiq-app-2026/hireiq-repo/hireiq:$SHORT_SHA']
 
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'europe-west1-docker.pkg.dev/$PROJECT_ID/hireiq-repo/hireiq:latest']
+    args: ['push', 'europe-west1-docker.pkg.dev/hireiq-app-2026/hireiq-repo/hireiq:latest']
 
   # Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -23,18 +23,18 @@ steps:
       - 'run'
       - 'deploy'
       - 'hireiq'
-      - '--image=europe-west1-docker.pkg.dev/$PROJECT_ID/hireiq-repo/hireiq:$SHORT_SHA'
+      - '--image=europe-west1-docker.pkg.dev/hireiq-app-2026/hireiq-repo/hireiq:$SHORT_SHA'
       - '--region=europe-west1'
       - '--platform=managed'
       - '--allow-unauthenticated'
       - '--set-secrets=GROQ_API_KEY=GROQ_API_KEY:latest'
       - '--memory=2Gi'
       - '--timeout=300'
-      - '--project=$PROJECT_ID'
+      - '--project=hireiq-app-2026'
 
 images:
-  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/hireiq-repo/hireiq:$SHORT_SHA'
-  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/hireiq-repo/hireiq:latest'
+  - 'europe-west1-docker.pkg.dev/hireiq-app-2026/hireiq-repo/hireiq:$SHORT_SHA'
+  - 'europe-west1-docker.pkg.dev/hireiq-app-2026/hireiq-repo/hireiq:latest'
 
 options:
   logging: CLOUD_LOGGING_ONLY
