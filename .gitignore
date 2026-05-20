@@ -3,4 +3,3 @@ __pycache__
 chroma_db/
 *.pyc
 .venv/
-data/*.pdf
