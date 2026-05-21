@@ -1,4 +1,9 @@
 steps:
+  # Authenticate Docker with Artifact Registry
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args: ['auth', 'configure-docker', 'europe-west1-docker.pkg.dev', '--quiet']
+
   # Build the Docker image
   - name: 'gcr.io/cloud-builders/docker'
     args:
