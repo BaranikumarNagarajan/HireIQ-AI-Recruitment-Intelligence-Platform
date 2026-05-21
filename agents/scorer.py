@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 _RECOMMENDATION_THRESHOLDS = [(75, "STRONG FIT"), (50, "POTENTIAL FIT"), (25, "WEAK FIT")]
 
-_SCORE_PROMPT = """You are an expert recruiter evaluating a candidate against a job description.
+_SCORE_PROMPT = """You are a strict expert recruiter evaluating a candidate against a job description.
 
 Candidate:
 - Skills: {cv_skills}
@@ -23,17 +23,22 @@ Job Description:
 - Seniority: {seniority}
 - Domain: {domain}
 
-Score the candidate on these 3 dimensions (0-100 each):
+Score the candidate on these 3 dimensions (0-100 each). BE STRICT AND HONEST:
 
 1. technical_skills: How well do candidate skills match required+preferred skills?
    - Match SEMANTICALLY not literally. "OpenAI" matches "OpenAI API", "langchain" matches "LangChain", etc.
+   - If the candidate's skills are from a completely different field (e.g. software engineer applying for marketing), score 10-20.
    - Required skills count 70%, preferred 30%.
+   - Only give 70+ if the candidate genuinely has most required skills.
 
 2. experience_level: How well does the candidate's experience fit the role level?
    - Internships, projects, and hands-on work count as real experience.
    - Be fair to candidates with strong project portfolios even if formal employment is short.
+   - If the experience domain is completely different from the role, score 20-35.
 
 3. domain_relevance: How relevant is the candidate's background to the job domain?
+   - If the candidate's field is completely different (e.g. AI engineer for a marketing role), score 10-25.
+   - Only give 70+ if the candidate has direct experience in the job's domain.
 
 Reply with ONLY valid JSON, no explanation:
 {{"technical_skills": {{"score": 85, "reasoning": "example"}}, "experience_level": {{"score": 70, "reasoning": "example"}}, "domain_relevance": {{"score": 75, "reasoning": "example"}}}}"""
