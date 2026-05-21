@@ -1,10 +1,5 @@
 steps:
-  # Authenticate Docker with Artifact Registry
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: gcloud
-    args: ['auth', 'configure-docker', 'europe-west1-docker.pkg.dev', '--quiet']
-
-  # Build the Docker image
+  # Build and push the Docker image in one step
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
@@ -13,13 +8,6 @@ steps:
       - '-t'
       - 'europe-west1-docker.pkg.dev/hireiq-app-2026/hireiq-repo/hireiq:latest'
       - '.'
-
-  # Push both tags to Artifact Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'europe-west1-docker.pkg.dev/hireiq-app-2026/hireiq-repo/hireiq:$SHORT_SHA']
-
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'europe-west1-docker.pkg.dev/hireiq-app-2026/hireiq-repo/hireiq:latest']
 
   # Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
