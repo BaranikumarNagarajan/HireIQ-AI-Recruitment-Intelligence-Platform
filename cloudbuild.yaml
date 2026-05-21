@@ -1,5 +1,5 @@
 steps:
-  # Build and push the Docker image in one step
+  # Build the Docker image
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
@@ -8,6 +8,10 @@ steps:
       - '-t'
       - 'europe-west1-docker.pkg.dev/hireiq-app-2026/hireiq-repo/hireiq:latest'
       - '.'
+
+  # Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '--all-tags', 'europe-west1-docker.pkg.dev/hireiq-app-2026/hireiq-repo/hireiq']
 
   # Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
