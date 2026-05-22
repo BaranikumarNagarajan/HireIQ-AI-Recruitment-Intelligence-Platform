@@ -1,24 +1,41 @@
+<div align="center">
+
 # HireIQ — AI Recruitment Intelligence Platform
 
-> End-to-end AI-powered recruitment screening — upload a CV, paste a job description, get a full candidate analysis in under 60 seconds.
+**End-to-end AI-powered CV screening. Upload a CV, paste a job description, get a full candidate analysis in under 60 seconds.**
 
-**Live demo**: [Deployed on Google Cloud Run](https://hireiq-838754609617.europe-west1.run.app) *(auto-deploys on every push via Cloud Build CI/CD)*
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Google%20Cloud%20Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)](https://hireiq-838754609617.europe-west1.run.app)
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![Groq](https://img.shields.io/badge/LLM-Groq%20%7C%20Llama%203.1-F55036?style=for-the-badge)](https://console.groq.com)
+[![Cloud Run](https://img.shields.io/badge/Deploy-Cloud%20Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)](https://cloud.google.com/run)
 
----
+*Auto-deploys on every push via Google Cloud Build CI/CD*
 
-## What it does
-
-HireIQ runs a candidate CV through a **6-agent AI pipeline** and produces:
-
-- **Match score** (0–100) across 5 weighted dimensions
-- **Skills gap analysis** — matched vs missing skills with semantic matching
-- **GDPR compliance check** via RAG (ChromaDB vector search over legal documents)
-- **5 targeted interview questions** based on identified gaps
-- **Downloadable PDF report** with full reasoning
+</div>
 
 ---
 
-## Architecture
+## Overview
+
+HireIQ is a production-grade multi-agent AI system that automates the first stage of recruitment. It replaces manual CV screening with a structured, explainable, and GDPR-aware AI pipeline — producing scores, skill gap analysis, compliance flags, and interview questions from a single CV upload.
+
+**Problem it solves:** Recruiters spend 6–8 seconds per CV at scale. HireIQ screens a candidate end-to-end in under 60 seconds with full reasoning, not just a number.
+
+---
+
+## What It Produces
+
+| Output | Detail |
+|--------|--------|
+| **Match Score** | 0–100 across 5 weighted dimensions |
+| **Skills Gap Report** | Matched vs missing skills with semantic matching |
+| **GDPR Compliance Check** | RAG-powered check against legal documents via ChromaDB |
+| **Interview Questions** | 5 targeted questions based on identified skill gaps |
+| **PDF Report** | Downloadable professional report with full reasoning |
+
+---
+
+## Multi-Agent Pipeline
 
 ```
 CV PDF + Job Description
@@ -29,7 +46,7 @@ CV PDF + Job Description
 └──────────┬──────────┘
            │
 ┌──────────▼──────────┐
-│   JD Analyser Agent │  Groq LLM → required skills, seniority, domain
+│  JD Analyser Agent  │  Groq LLM → required skills, seniority, domain
 └──────────┬──────────┘
            │
 ┌──────────▼──────────┐
@@ -49,6 +66,8 @@ CV PDF + Job Description
 └─────────────────────┘
 ```
 
+Each agent has a single responsibility. Outputs are passed sequentially — no agent makes assumptions about another's internals.
+
 ---
 
 ## Scoring Model
@@ -56,37 +75,46 @@ CV PDF + Job Description
 | Dimension | Weight | Method |
 |-----------|--------|--------|
 | Technical Skills | 35% | LLM + deterministic skill-overlap cap |
-| Experience Level | 25% | LLM |
+| Experience Level | 25% | LLM (internships and projects credited) |
 | Domain Relevance | 20% | LLM + deterministic skill-overlap cap |
-| Employment Stability | 10% | Rule-based (gaps, tenure) |
+| Employment Stability | 10% | Rule-based (gaps, average tenure) |
 | Education | 10% | Rule-based (degree level vs seniority) |
 
-**Anti-inflation rule**: if CV–JD skill overlap < 10%, technical skills and domain relevance are hard-capped at 20 and 25 respectively — regardless of LLM output. This prevents mismatched candidates (e.g. a software engineer applying for a marketing role) from scoring high.
+### Anti-Inflation Rule
+
+LLMs tend to find loose connections between unrelated domains. HireIQ adds a deterministic guard:
+
+- **< 10% skill overlap** → technical skills capped at 20, domain relevance capped at 25
+- **< 25% skill overlap** → both capped at 40
+
+This prevents a software engineer applying for a marketing role from scoring 80%+ because the LLM found the word "communication" on the CV.
+
+### Score Thresholds
 
 | Score | Recommendation |
-|-------|---------------|
-| 75–100 | STRONG FIT |
-| 50–74 | POTENTIAL FIT |
-| 25–49 | WEAK FIT |
-| 0–24 | NOT RECOMMENDED |
+|-------|----------------|
+| 75–100 | ✅ STRONG FIT |
+| 50–74 | 🟡 POTENTIAL FIT |
+| 25–49 | 🟠 WEAK FIT |
+| 0–24 | ❌ NOT RECOMMENDED |
 
 ---
 
 ## Tech Stack
 
 | Component | Technology |
-|-----------|-----------|
-| LLM | Groq API (`llama-3.1-8b-instant`) |
-| LLM Alternatives | Claude (Anthropic), xAI |
-| Vector Database | ChromaDB (embedded, baked into Docker image) |
-| Embeddings | sentence-transformers `all-MiniLM-L6-v2` |
+|-----------|------------|
+| LLM | Groq API — `llama-3.1-8b-instant` |
+| LLM Alternatives | Claude (Anthropic), xAI Grok |
+| Vector Database | ChromaDB (embedded, pre-baked into Docker image) |
+| Embeddings | `sentence-transformers/all-MiniLM-L6-v2` |
 | PDF Processing | PyMuPDF + Tesseract OCR |
-| Evaluation | Custom RAG eval pipeline (faithfulness, relevancy, precision) |
+| RAG Evaluation | Custom pipeline — faithfulness, answer relevancy, context precision |
 | Frontend | Streamlit |
 | Report Generation | ReportLab |
 | Containerisation | Docker |
-| Deployment | Google Cloud Run (serverless, scales to zero) |
-| CI/CD | Google Cloud Build (auto-deploy on `git push` to `main`) |
+| Deployment | Google Cloud Run — `europe-west1`, scales to zero |
+| CI/CD | Google Cloud Build — auto-deploy on `git push` to `main` |
 
 ---
 
@@ -95,19 +123,19 @@ CV PDF + Job Description
 ### Prerequisites
 
 - Python 3.11+
-- [Groq API key](https://console.groq.com) (free)
-- Tesseract OCR installed
+- [Groq API key](https://console.groq.com) (free tier available)
+- Tesseract OCR installed locally
 
-### Local Setup
+### Setup
 
 ```bash
 git clone https://github.com/BaranikumarNagarajan/HireIQ-AI-Recruitment-Intelligence-Platform.git
 cd HireIQ-AI-Recruitment-Intelligence-Platform
 
 python -m venv .venv
-# Windows:
+# Windows
 .venv\Scripts\activate
-# macOS/Linux:
+# macOS / Linux
 source .venv/bin/activate
 
 pip install -r requirements.txt
@@ -136,44 +164,56 @@ Open [http://localhost:8501](http://localhost:8501)
 ## Project Structure
 
 ```
-├── app.py                     # Streamlit UI
-├── config.py                  # Configuration + env vars
-├── Dockerfile                 # Production container
+├── app.py                     # Streamlit UI — all tabs and result rendering
+├── config.py                  # Environment variables and scoring weights
+├── Dockerfile                 # Production container — pre-bakes ChromaDB
 ├── cloudbuild.yaml            # Cloud Build CI/CD pipeline
 ├── requirements.txt
 ├── agents/
-│   ├── parser.py              # CV extraction (PyMuPDF + OCR)
-│   ├── jd_analyser.py         # Job description analysis
-│   ├── scorer.py              # 5-dimension scoring with overlap rule
+│   ├── parser.py              # CV extraction — PyMuPDF with Tesseract OCR fallback
+│   ├── jd_analyser.py         # Job description analysis → structured JSON
+│   ├── scorer.py              # 5-dimension scoring with deterministic overlap rule
 │   ├── compliance.py          # GDPR RAG compliance check
-│   ├── interviewer.py         # Interview question generation
-│   └── reporter.py            # PDF report (ReportLab)
+│   ├── interviewer.py         # Interview question generation from identified gaps
+│   └── reporter.py            # PDF report generation — ReportLab
 ├── rag/
 │   ├── ingest.py              # Legal document ingestion → ChromaDB
-│   └── retriever.py           # Semantic search
+│   └── retriever.py           # Semantic search over legal document store
 ├── eval/
-│   └── ragas_eval.py          # RAG quality evaluation pipeline
+│   └── ragas_eval.py          # RAG quality evaluation — custom faithfulness/relevancy/precision
 ├── utils/
-│   ├── llm_client.py          # Unified LLM client (Groq / Claude / xAI)
+│   ├── llm_client.py          # Unified LLM client — Groq / Claude / xAI
 │   └── chroma_client.py       # ChromaDB singleton
 └── data/
-    └── (legal PDF documents for RAG)
+    └── (GDPR and employment law PDFs for RAG)
 ```
 
 ---
 
 ## Deployment
 
-Deployed on **Google Cloud Run** in `europe-west1`. Every push to `main` triggers a Cloud Build pipeline that:
+Deployed on **Google Cloud Run** (`europe-west1`). Every `git push` to `main` triggers:
 
-1. Builds the Docker image (including pre-ingesting legal documents into ChromaDB)
-2. Pushes to Artifact Registry
-3. Deploys to Cloud Run with zero downtime
+1. Docker build — ChromaDB is pre-ingested at build time (not at startup)
+2. Push to Google Artifact Registry
+3. Zero-downtime deploy to Cloud Run
 
-The service scales to zero when idle — no fixed cost.
+The service **scales to zero** when idle — no fixed infrastructure cost.
+
+---
+
+## RAG Evaluation
+
+HireIQ includes a built-in RAG evaluation dashboard. It tests the legal document retrieval system against 5 GDPR/compliance questions and scores:
+
+- **Faithfulness** — is the answer grounded in retrieved context?
+- **Answer Relevancy** — does the answer address the question?
+- **Context Precision** — are the retrieved chunks relevant?
+
+This is separate from candidate screening — it validates the compliance pipeline quality independently.
 
 ---
 
 ## Disclaimer
 
-HireIQ is designed to assist recruitment screening and must not be the sole decision-making tool. Always apply human review and comply with local employment laws. Automated CV screening using AI may be subject to GDPR Article 22 obligations.
+HireIQ is designed to assist recruitment screening and must not be the sole decision-making tool. Always apply human review and comply with applicable employment law. Automated CV screening using AI may be subject to GDPR Article 22 obligations in the EU.
