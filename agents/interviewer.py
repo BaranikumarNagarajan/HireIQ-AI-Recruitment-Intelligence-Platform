@@ -10,9 +10,9 @@ def generate_questions(cv_data: Dict[str, Any], jd_data: Dict[str, Any], score_d
     """Generate targeted interview questions based on CV-JD gaps."""
     try:
         gaps = identify_gaps(cv_data, jd_data, score_data)
-        skills = cv_data.get("skills") or []
+        skills = [s.lower() for s in (cv_data.get("skills") or [])]
         required = jd_data.get("required_skills") or []
-        missing = [s for s in required if s not in skills]
+        missing = [s for s in required if s.lower() not in skills]
         job_title = jd_data.get("job_title", "the role")
 
         # Single focused prompt — 5 questions, simple format, easier for 3B model
