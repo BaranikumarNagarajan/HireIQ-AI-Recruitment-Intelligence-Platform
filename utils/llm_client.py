@@ -1,17 +1,15 @@
-"""LLM client — supports Ollama (local), Claude (Anthropic), Groq, and xAI."""
+"""LLM client — supports Groq (primary), Claude (Anthropic), and xAI."""
 import json
 import logging
 import requests
 from config import (
-    LLM_PROVIDER, LLM_MODEL, OLLAMA_API_URL,
+    LLM_PROVIDER,
     ANTHROPIC_API_KEY, CLAUDE_MODEL,
     GROQ_API_KEY, GROQ_MODEL,
     XAI_API_KEY, XAI_MODEL,
 )
 
 logger = logging.getLogger(__name__)
-OLLAMA_TIMEOUT = 240
-CLAUDE_TIMEOUT = 60
 
 
 # ---------------------------------------------------------------------------
@@ -69,43 +67,6 @@ def parse_llm_json_response(response: str):
         if json_text is not None:
             return json.loads(json_text)
         raise
-
-
-# ---------------------------------------------------------------------------
-# Ollama provider
-# ---------------------------------------------------------------------------
-
-def is_ollama_available() -> bool:
-    """Return True if the Ollama HTTP API is reachable."""
-    if LLM_PROVIDER != "ollama":
-        return False
-    try:
-        resp = requests.get(f"{OLLAMA_API_URL}/api/tags", timeout=5)
-        return resp.status_code == 200
-    except Exception:
-        return False
-
-
-def get_ollama_response(prompt: str, temperature: float = 0.2) -> str:
-    """Call Ollama HTTP API."""
-    try:
-        resp = requests.post(
-            f"{OLLAMA_API_URL}/api/generate",
-            json={"model": LLM_MODEL, "prompt": prompt, "stream": False,
-                  "options": {"temperature": temperature}},
-            timeout=OLLAMA_TIMEOUT,
-        )
-        resp.raise_for_status()
-        return resp.json().get("response", "")
-    except requests.exceptions.Timeout:
-        logger.error("Ollama request timed out")
-        return "Error: Ollama request timed out"
-    except requests.exceptions.ConnectionError:
-        logger.error("Cannot connect to Ollama at %s", OLLAMA_API_URL)
-        return f"Error: Cannot connect to Ollama at {OLLAMA_API_URL}"
-    except Exception as exc:
-        logger.error("Ollama request failed: %s", exc)
-        return f"Error: {exc}"
 
 
 # ---------------------------------------------------------------------------
@@ -208,13 +169,11 @@ def get_xai_response(prompt: str, temperature: float = 0.2) -> str:
 
 def get_llm_response(prompt: str, temperature: float = 0.2) -> str:
     """Get text response from the configured LLM provider."""
-    if LLM_PROVIDER == "ollama":
-        return get_ollama_response(prompt, temperature)
-    if LLM_PROVIDER == "claude":
-        return get_claude_response(prompt, temperature)
     if LLM_PROVIDER == "groq":
         return get_groq_response(prompt, temperature)
+    if LLM_PROVIDER == "claude":
+        return get_claude_response(prompt, temperature)
     if LLM_PROVIDER == "xai":
         return get_xai_response(prompt, temperature)
     logger.error("Unsupported LLM provider: %s", LLM_PROVIDER)
-    return f"Error: Unsupported LLM provider '{LLM_PROVIDER}'. Use 'ollama', 'claude', 'groq', or 'xai'."
+    return f"Error: Unsupported LLM provider '{LLM_PROVIDER}'. Set LLM_PROVIDER to 'groq', 'claude', or 'xai'."

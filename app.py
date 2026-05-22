@@ -52,29 +52,24 @@ with st.sidebar:
                 ingest_legal_documents()
                 st.rerun()
     
-    # Local Model check
-    from config import LLM_PROVIDER, LLM_MODEL, CLAUDE_MODEL, GROQ_MODEL, XAI_MODEL
-    from utils.llm_client import is_ollama_available, is_claude_available, is_groq_available, is_xai_available
-    if LLM_PROVIDER == "xai":
-        if is_xai_available():
-            st.success(f"✅ xAI API ready: {XAI_MODEL}")
-        else:
-            st.error("❌ XAI_API_KEY missing in .env")
-    elif LLM_PROVIDER == "groq":
+    # LLM status
+    from config import LLM_PROVIDER, CLAUDE_MODEL, GROQ_MODEL, XAI_MODEL
+    from utils.llm_client import is_claude_available, is_groq_available, is_xai_available
+    if LLM_PROVIDER == "groq":
         if is_groq_available():
             st.success(f"✅ Groq API ready: {GROQ_MODEL}")
         else:
-            st.error("❌ GROQ_API_KEY missing in .env")
+            st.error("❌ GROQ_API_KEY missing")
     elif LLM_PROVIDER == "claude":
         if is_claude_available():
             st.success(f"✅ Claude API ready: {CLAUDE_MODEL}")
         else:
-            st.error("❌ ANTHROPIC_API_KEY missing in .env")
-    elif LLM_PROVIDER == "ollama":
-        if is_ollama_available():
-            st.success(f"✅ Ollama ready: {LLM_MODEL}")
+            st.error("❌ ANTHROPIC_API_KEY missing")
+    elif LLM_PROVIDER == "xai":
+        if is_xai_available():
+            st.success(f"✅ xAI API ready: {XAI_MODEL}")
         else:
-            st.error("❌ Ollama unavailable — run: ollama serve")
+            st.error("❌ XAI_API_KEY missing")
     else:
         st.warning(f"⚠️ Unknown LLM_PROVIDER: {LLM_PROVIDER}")
     
@@ -307,7 +302,7 @@ elif tab == "About":
     
     ### 🛠️ Tech Stack
     
-    - **LLM**: Local Ollama (`llama3.2:3b`)
+    - **LLM**: Groq API (`llama-3.1-8b-instant`)
     - **Agent Framework**: LangChain
     - **Vector DB**: ChromaDB (embedded)
     - **Embeddings**: sentence-transformers all-MiniLM-L6-v2

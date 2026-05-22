@@ -3,23 +3,20 @@ import logging
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# LLM provider — "ollama" | "claude"
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama").strip().lower()
-LLM_MODEL = os.getenv("LLM_MODEL", "llama3.2:3b").strip()
-OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", "http://localhost:11434").strip()
+# LLM provider — "groq" | "claude" | "xai"
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "groq").strip().lower()
+
+# Groq (primary)
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant").strip()
 
 # Claude / Anthropic
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "").strip()
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-haiku-4-5").strip()
-
-# Groq
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant").strip()
 
 # xAI / Grok
 XAI_API_KEY = os.getenv("XAI_API_KEY", "").strip()
