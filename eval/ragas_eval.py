@@ -63,8 +63,9 @@ Context: {context}
 Answer: {answer}
 Ground Truth: {ground_truth}
 
-Reply with ONLY valid JSON, no explanation:
-{{"faithfulness": 0.0, "answer_relevancy": 0.0, "context_precision": 0.0}}"""
+Carefully read the question, context, answer, and ground truth above. Then return your scores.
+Reply with ONLY valid JSON containing your actual scores (floats between 0.0 and 1.0):
+{{"faithfulness": <your_score>, "answer_relevancy": <your_score>, "context_precision": <your_score>}}"""
 
 
 def _score_question(question: str, context: str, answer: str, ground_truth: str) -> Dict[str, float]:
