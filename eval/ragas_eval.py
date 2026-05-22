@@ -237,4 +237,6 @@ def display_eval_results(results: Dict[str, Any]) -> None:
             mc2.metric("Answer Relevancy", f"{row['answer_relevancy']:.3f}")
             mc3.metric("Context Precision", f"{row['context_precision']:.3f}")
             if "answer" in row:
-                st.markdown(f"**Generated Answer:** {str(row['answer'])[:400]}…")
+                answer_text = str(row['answer'])
+                display = answer_text[:500] + "…" if len(answer_text) > 500 else answer_text
+                st.markdown(f"**Generated Answer:** {display}")

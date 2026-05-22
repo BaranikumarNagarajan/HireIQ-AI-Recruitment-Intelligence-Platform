@@ -85,45 +85,86 @@ def generate_report(cv_data: Dict[str, Any], jd_data: Dict[str, Any], score_data
         for dim, score in scores.items():
             weight = score_data.get('weights', {}).get(dim, 0)
             dim_reasoning = reasoning_map.get(dim, '')
-            truncated = dim_reasoning[:100] + '...' if len(dim_reasoning) > 100 else dim_reasoning
-            score_table_data.append([dim.replace('_', ' ').title(), f"{score}/100", f"{weight*100:.0f}%", truncated])
-        
-        score_table = Table(score_table_data)
+            # Strip rule-override notes from display to keep PDF clean
+            display_reasoning = dim_reasoning.split(' [Rule:')[0]
+            truncated = display_reasoning[:120] + '…' if len(display_reasoning) > 120 else display_reasoning
+            score_table_data.append([
+                Paragraph(dim.replace('_', ' ').title(), styles['Normal']),
+                Paragraph(f"<b>{score:.0f}/100</b>", styles['Normal']),
+                Paragraph(f"{weight*100:.0f}%", styles['Normal']),
+                Paragraph(truncated, styles['Normal']),
+            ])
+
+        score_table = Table(score_table_data, colWidths=[1.6*inch, 0.85*inch, 0.7*inch, 4.0*inch])
         score_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#37474f')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 14),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ('FONTSIZE', (0, 0), (-1, 0), 11),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#fafafa')),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f5f5f5')]),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ]))
         story.append(score_table)
         story.append(Spacer(1, 0.25*inch))
         
         # Skills Analysis
         story.append(Paragraph("Skills Analysis", header_style))
-        cv_skills = set(cv_data.get('skills', []))
-        jd_required = set(jd_data.get('required_skills', []))
-        jd_preferred = set(jd_data.get('preferred_skills', []))
-        
-        matched = cv_skills & (jd_required | jd_preferred)
-        missing = (jd_required | jd_preferred) - cv_skills
-        
+        cv_lower = [s.lower() for s in cv_data.get('skills', [])]
+        all_jd = list(jd_data.get('required_skills', [])) + list(jd_data.get('preferred_skills', []))
+
+        def _pdf_skill_matched(jd_skill: str) -> bool:
+            jd_l = jd_skill.lower()
+            words = [w for w in jd_l.split() if len(w) >= 2]
+            for cv_s in cv_lower:
+                if jd_l in cv_s or cv_s in jd_l:
+                    return True
+                if words and any(w in cv_s for w in words):
+                    return True
+            return False
+
+        matched = [s for s in all_jd if _pdf_skill_matched(s)]
+        missing = [s for s in all_jd if not _pdf_skill_matched(s)]
+
+        match_pct = round(len(matched) / len(all_jd) * 100) if all_jd else 0
+        story.append(Paragraph(
+            f"<b>{len(matched)} / {len(all_jd)} JD skills matched ({match_pct}%)</b>", normal_style
+        ))
+        story.append(Spacer(1, 0.1*inch))
+
+        matched_text = Paragraph(
+            ''.join(f'• {s}<br/>' for s in matched) or 'No skills matched',
+            ParagraphStyle('matched', parent=normal_style, textColor=colors.HexColor('#155724'))
+        )
+        missing_text = Paragraph(
+            ''.join(f'• {s}<br/>' for s in missing) or 'All skills matched!',
+            ParagraphStyle('missing', parent=normal_style, textColor=colors.HexColor('#721c24'))
+        )
+
         skills_data = [
-            ['Matched Skills', 'Missing Skills'],
-            ['\n'.join(matched), '\n'.join(missing)]
+            [Paragraph('<b>✅ Matched Skills</b>', styles['Normal']),
+             Paragraph('<b>❌ Missing Skills</b>', styles['Normal'])],
+            [matched_text, missing_text],
         ]
-        
-        skills_table = Table(skills_data)
+
+        skills_table = Table(skills_data, colWidths=[3.6*inch, 3.6*inch])
         skills_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#37474f')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('BACKGROUND', (0, 1), (0, 1), colors.green),
-            ('BACKGROUND', (1, 1), (1, 1), colors.red),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('BACKGROUND', (0, 1), (0, 1), colors.HexColor('#d4edda')),
+            ('BACKGROUND', (1, 1), (1, 1), colors.HexColor('#f8d7da')),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
         ]))
         story.append(skills_table)
         story.append(Spacer(1, 0.25*inch))
