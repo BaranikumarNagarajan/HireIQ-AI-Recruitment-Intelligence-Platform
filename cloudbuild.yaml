@@ -25,6 +25,7 @@ steps:
       - '--platform=managed'
       - '--allow-unauthenticated'
       - '--set-secrets=GROQ_API_KEY=GROQ_API_KEY:latest'
+      - '--set-env-vars=LLM_PROVIDER=groq'
       - '--memory=2Gi'
       - '--timeout=300'
       - '--project=hireiq-app-2026'

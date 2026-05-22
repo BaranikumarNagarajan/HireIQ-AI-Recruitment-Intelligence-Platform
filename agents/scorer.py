@@ -44,6 +44,26 @@ Reply with ONLY valid JSON, no explanation:
 {{"technical_skills": {{"score": 85, "reasoning": "example"}}, "experience_level": {{"score": 70, "reasoning": "example"}}, "domain_relevance": {{"score": 75, "reasoning": "example"}}}}"""
 
 
+def _skill_overlap_ratio(cv_data: Dict[str, Any], jd_data: Dict[str, Any]) -> float:
+    """Compute fraction of JD skills that semantically match any CV skill."""
+    cv_skills = [s.lower() for s in (cv_data.get("skills") or [])]
+    jd_skills = [s.lower() for s in
+                 (jd_data.get("required_skills") or []) + (jd_data.get("preferred_skills") or [])]
+    if not jd_skills or not cv_skills:
+        return 0.5
+    matched = 0
+    for jd_skill in jd_skills:
+        jd_words = [w for w in jd_skill.split() if len(w) > 3]
+        for cv_skill in cv_skills:
+            if jd_skill in cv_skill or cv_skill in jd_skill:
+                matched += 1
+                break
+            if jd_words and any(w in cv_skill for w in jd_words):
+                matched += 1
+                break
+    return matched / len(jd_skills)
+
+
 def score_candidate(cv_data: Dict[str, Any], jd_data: Dict[str, Any]) -> Dict[str, Any]:
     """Score candidate — 1 LLM call for complex dims, rule-based for simple dims."""
     try:
@@ -59,6 +79,21 @@ def score_candidate(cv_data: Dict[str, Any], jd_data: Dict[str, Any]) -> Dict[st
         for dim in ("technical_skills", "experience_level", "domain_relevance"):
             scores[dim] = llm_scores[dim]["score"]
             reasoning[dim] = llm_scores[dim]["reasoning"]
+
+        # Hard-cap scores based on actual skill overlap — LLM cannot override this
+        overlap = _skill_overlap_ratio(cv_data, jd_data)
+        if overlap < 0.10:
+            cap_note = f" [Rule: {overlap*100:.0f}% skill overlap — clear domain mismatch, score capped]"
+            scores["technical_skills"] = min(scores["technical_skills"], 20.0)
+            scores["domain_relevance"] = min(scores["domain_relevance"], 25.0)
+            reasoning["technical_skills"] += cap_note
+            reasoning["domain_relevance"] += cap_note
+        elif overlap < 0.25:
+            cap_note = f" [Rule: {overlap*100:.0f}% skill overlap — partial mismatch, score capped]"
+            scores["technical_skills"] = min(scores["technical_skills"], 40.0)
+            scores["domain_relevance"] = min(scores["domain_relevance"], 40.0)
+            reasoning["technical_skills"] += cap_note
+            reasoning["domain_relevance"] += cap_note
 
         total_score = sum(scores[dim] * SCORE_WEIGHTS[dim] for dim in scores)
         recommendation = next(
