@@ -4,12 +4,14 @@
 
 **End-to-end AI-powered CV screening. Upload a CV, paste a job description, get a full candidate analysis in under 60 seconds.**
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Google%20Cloud%20Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)](https://hireiq-838754609617.europe-west1.run.app)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Google%20Cloud%20Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)](https://hireiq-hmdx5ylgna-ew.a.run.app)
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Groq](https://img.shields.io/badge/LLM-Groq%20%7C%20Llama%203.1-F55036?style=for-the-badge)](https://console.groq.com)
 [![Cloud Run](https://img.shields.io/badge/Deploy-Cloud%20Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)](https://cloud.google.com/run)
 
 *Auto-deploys on every push via Google Cloud Build CI/CD*
+
+> First load may take ~5 seconds — Cloud Run scales to zero when idle.
 
 </div>
 
