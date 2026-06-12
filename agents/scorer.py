@@ -32,9 +32,13 @@ Score the candidate on these 3 dimensions (0-100 each). BE STRICT AND HONEST:
    - Only give 70+ if the candidate genuinely has most required skills.
 
 2. experience_level: How well does the candidate's experience fit the role level?
-   - Internships, projects, and hands-on work count as real experience.
-   - Be fair to candidates with strong project portfolios even if formal employment is short.
-   - If the experience domain is completely different from the role, score 20-35.
+   - Compare candidate years ({cv_years}) against minimum required years ({min_years}).
+   - Candidate years < 40% of required: score 10-25. No exceptions.
+   - Candidate years 40-70% of required: score 30-50.
+   - Candidate years 70-100% of required: score 50-70.
+   - Candidate meets or exceeds required years: score 65-90.
+   - Internships count as 0.5x regular employment. Projects alone add at most 10 points.
+   - Only give 70+ if the candidate genuinely meets the experience requirement.
 
 3. domain_relevance: How relevant is the candidate's background to the job domain?
    - If the candidate's field is completely different (e.g. AI engineer for a marketing role), score 10-25.
@@ -94,6 +98,20 @@ def score_candidate(cv_data: Dict[str, Any], jd_data: Dict[str, Any]) -> Dict[st
             scores["domain_relevance"] = min(scores["domain_relevance"], 40.0)
             reasoning["technical_skills"] += cap_note
             reasoning["domain_relevance"] += cap_note
+
+        # Hard-cap experience based on years ratio — LLM cannot inflate this
+        cv_years = float(cv_data.get("total_years_experience") or 0)
+        min_years = float(jd_data.get("minimum_years_experience") or 0)
+        if min_years > 0:
+            years_ratio = cv_years / min_years
+            if years_ratio < 0.4:
+                cap_note = f" [Rule: {cv_years:.1f}yr vs {min_years:.0f}yr required — experience capped]"
+                scores["experience_level"] = min(scores["experience_level"], 25.0)
+                reasoning["experience_level"] += cap_note
+            elif years_ratio < 0.7:
+                cap_note = f" [Rule: {cv_years:.1f}yr vs {min_years:.0f}yr required — experience capped]"
+                scores["experience_level"] = min(scores["experience_level"], 50.0)
+                reasoning["experience_level"] += cap_note
 
         total_score = sum(scores[dim] * SCORE_WEIGHTS[dim] for dim in scores)
         recommendation = next(
@@ -157,9 +175,8 @@ def _llm_score_three_dims(cv_data: Dict[str, Any], jd_data: Dict[str, Any]) -> D
             score = round(float(dim_data.get("score", 50.0)), 1)
             reasoning = str(dim_data.get("reasoning", "No reasoning provided"))
             # Never give 0 for experience when candidate has real work history
-            if dim == "experience_level" and score < 40 and work_experience:
-                score = 40.0
-                reasoning += " (Internship and project experience credited — minimum score applied.)"
+            if dim == "experience_level" and score < 10 and work_experience:
+                score = 10.0
             result[dim] = {"score": score, "reasoning": reasoning}
         return result
     except Exception as exc:
