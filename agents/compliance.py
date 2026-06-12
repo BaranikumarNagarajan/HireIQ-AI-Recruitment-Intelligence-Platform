@@ -40,17 +40,24 @@ Reply with ONLY a JSON object (no extra text):
 
         response = get_llm_response(prompt)
 
+        _default_compliance = {
+            "compliance_flags": ["Manual review recommended — automated parsing may not capture all nuance"],
+            "gdpr_requirements": ["Obtain candidate consent", "Provide data retention notice"],
+            "recommendations": ["Ensure human review of AI output before decisions are made"],
+            "risk_level": "MEDIUM",
+        }
         try:
-            return parse_llm_json_response(response)
+            result = parse_llm_json_response(response)
         except Exception:
             logger.error("Failed to parse compliance response as JSON")
-            # Return a safe default so the pipeline does not crash
-            return {
-                "compliance_flags": ["Manual review recommended — automated parsing may not capture all nuance"],
-                "gdpr_requirements": ["Obtain candidate consent", "Provide data retention notice"],
-                "recommendations": ["Ensure human review of AI output before decisions are made"],
-                "risk_level": "MEDIUM",
-            }
+            return _default_compliance
+
+        # LLMs sometimes wrap the object in an array — unwrap it
+        if isinstance(result, list):
+            result = result[0] if result and isinstance(result[0], dict) else None
+        if not isinstance(result, dict):
+            return _default_compliance
+        return result
 
     except Exception as e:
         logger.error("Failed to check compliance: %s", e)

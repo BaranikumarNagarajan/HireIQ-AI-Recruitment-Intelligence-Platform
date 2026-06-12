@@ -58,6 +58,16 @@ def parse_cv(file_bytes: bytes) -> Dict[str, Any]:
             logger.error("Failed to parse LLM response as JSON: %s", response)
             return {"error": "Failed to parse CV data"}
 
+        # LLMs sometimes wrap the object in an array — unwrap it
+        if isinstance(parsed_data, list):
+            if parsed_data and isinstance(parsed_data[0], dict):
+                parsed_data = parsed_data[0]
+            else:
+                return {"error": "Failed to parse CV data"}
+
+        if not isinstance(parsed_data, dict):
+            return {"error": "Failed to parse CV data"}
+
         parsed_data["extraction_method"] = extraction_method
         parsed_data["extracted_text"] = text  # needed by the Streamlit preview
         return parsed_data
