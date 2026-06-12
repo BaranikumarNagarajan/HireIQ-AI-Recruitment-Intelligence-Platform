@@ -106,19 +106,22 @@ def is_groq_available() -> bool:
     return LLM_PROVIDER == "groq" and bool(GROQ_API_KEY)
 
 
-def get_groq_response(prompt: str, temperature: float = 0.2) -> str:
+def get_groq_response(prompt: str, temperature: float = 0.2, json_mode: bool = False) -> str:
     """Call Groq API (OpenAI-compatible, very fast)."""
     if not GROQ_API_KEY:
         return "Error: GROQ_API_KEY not set in .env"
     try:
         from groq import Groq
         client = Groq(api_key=GROQ_API_KEY)
-        chat = client.chat.completions.create(
-            model=GROQ_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=temperature,
-            max_tokens=1024,
-        )
+        kwargs: dict = {
+            "model": GROQ_MODEL,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature,
+            "max_tokens": 1024,
+        }
+        if json_mode:
+            kwargs["response_format"] = {"type": "json_object"}
+        chat = client.chat.completions.create(**kwargs)
         return chat.choices[0].message.content or ""
     except Exception as exc:
         logger.error("Groq request failed: %s", exc)
@@ -167,10 +170,10 @@ def get_xai_response(prompt: str, temperature: float = 0.2) -> str:
 # Unified entry point
 # ---------------------------------------------------------------------------
 
-def get_llm_response(prompt: str, temperature: float = 0.2) -> str:
+def get_llm_response(prompt: str, temperature: float = 0.2, json_mode: bool = False) -> str:
     """Get text response from the configured LLM provider."""
     if LLM_PROVIDER == "groq":
-        return get_groq_response(prompt, temperature)
+        return get_groq_response(prompt, temperature, json_mode)
     if LLM_PROVIDER == "claude":
         return get_claude_response(prompt, temperature)
     if LLM_PROVIDER == "xai":

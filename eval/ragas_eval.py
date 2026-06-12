@@ -11,17 +11,20 @@ from utils.llm_client import parse_llm_json_response
 _EVAL_MODEL = "llama-3.1-8b-instant"  # high token/min limit — avoids 429 on free tier
 
 
-def get_llm_response(prompt: str, temperature: float = 0.2) -> str:
+def get_llm_response(prompt: str, temperature: float = 0.2, json_mode: bool = False) -> str:
     """Eval-specific LLM call using the fast 8b model."""
     try:
         from groq import Groq
         client = Groq(api_key=GROQ_API_KEY)
-        chat = client.chat.completions.create(
-            model=_EVAL_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=temperature,
-            max_tokens=512,
-        )
+        kwargs: dict = {
+            "model": _EVAL_MODEL,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature,
+            "max_tokens": 512,
+        }
+        if json_mode:
+            kwargs["response_format"] = {"type": "json_object"}
+        chat = client.chat.completions.create(**kwargs)
         return chat.choices[0].message.content or ""
     except Exception as exc:
         return f"Error: {exc}"
@@ -74,7 +77,7 @@ def _score_question(question: str, context: str, answer: str, ground_truth: str)
         question=question, context=context[:1500], answer=answer[:800], ground_truth=ground_truth
     )
     try:
-        raw = get_llm_response(prompt, temperature=0.0)
+        raw = get_llm_response(prompt, temperature=0.0, json_mode=True)
         scores = parse_llm_json_response(raw)
         return {
             "faithfulness": float(scores.get("faithfulness", 0.5)),

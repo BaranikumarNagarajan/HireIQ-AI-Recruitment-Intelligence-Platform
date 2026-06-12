@@ -144,7 +144,7 @@ def _llm_score_three_dims(cv_data: Dict[str, Any], jd_data: Dict[str, Any]) -> D
     }
 
     try:
-        raw = get_llm_response(prompt)
+        raw = get_llm_response(prompt, json_mode=True)
         parsed = parse_llm_json_response(raw)
         # LLMs sometimes wrap the object in an array — unwrap it
         if isinstance(parsed, list):

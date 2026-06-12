@@ -38,7 +38,7 @@ Reply with ONLY a JSON object (no extra text):
   "risk_level": "LOW"
 }}"""
 
-        response = get_llm_response(prompt)
+        response = get_llm_response(prompt, json_mode=True)
 
         _default_compliance = {
             "compliance_flags": ["Manual review recommended — automated parsing may not capture all nuance"],

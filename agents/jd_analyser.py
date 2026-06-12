@@ -31,7 +31,7 @@ def analyse_jd(jd_text: str) -> Dict[str, Any]:
         {jd_text}
         """
         
-        response = get_llm_response(prompt)
+        response = get_llm_response(prompt, json_mode=True)
 
         # Parse JSON response
         try:

@@ -50,7 +50,7 @@ def parse_cv(file_bytes: bytes) -> Dict[str, Any]:
         {text}
         """
         
-        response = get_llm_response(prompt)
+        response = get_llm_response(prompt, json_mode=True)
 
         try:
             parsed_data = parse_llm_json_response(response)
