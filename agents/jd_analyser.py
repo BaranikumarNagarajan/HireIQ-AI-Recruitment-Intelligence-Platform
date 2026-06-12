@@ -40,6 +40,18 @@ def analyse_jd(jd_text: str) -> Dict[str, Any]:
             logger.error("Failed to parse LLM response as JSON")
             return {"error": "Failed to parse JD data"}
 
+        # LLMs sometimes wrap the object in an array — unwrap it
+        if isinstance(parsed_data, list):
+            if parsed_data and isinstance(parsed_data[0], dict):
+                parsed_data = parsed_data[0]
+            else:
+                logger.error("LLM returned a list with no usable dict inside")
+                return {"error": "Failed to parse JD data"}
+
+        if not isinstance(parsed_data, dict):
+            logger.error("LLM returned unexpected type: %s", type(parsed_data))
+            return {"error": "Failed to parse JD data"}
+
         return parsed_data
         
     except Exception as e:

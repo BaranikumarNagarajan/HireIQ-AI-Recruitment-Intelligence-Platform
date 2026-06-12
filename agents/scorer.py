@@ -146,6 +146,11 @@ def _llm_score_three_dims(cv_data: Dict[str, Any], jd_data: Dict[str, Any]) -> D
     try:
         raw = get_llm_response(prompt)
         parsed = parse_llm_json_response(raw)
+        # LLMs sometimes wrap the object in an array — unwrap it
+        if isinstance(parsed, list):
+            parsed = parsed[0] if parsed and isinstance(parsed[0], dict) else {}
+        if not isinstance(parsed, dict):
+            return default
         result = {}
         for dim in ("technical_skills", "experience_level", "domain_relevance"):
             dim_data = parsed.get(dim, {})
